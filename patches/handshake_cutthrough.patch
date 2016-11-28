@@ -1,34 +1,57 @@
---- openssl-1.0.1k.orig/apps/s_client.c	2016-11-28 11:42:08.194430148 +0000
-+++ openssl-1.0.1k/apps/s_client.c	2016-11-28 11:42:08.334424798 +0000
-@@ -366,6 +366,7 @@ static void sc_usage(void)
- 	BIO_printf(bio_err," -nextprotoneg arg - enable NPN extension, considering named protocols supported (comma-separated list)\n");
+--- openssl-1.0.1m.orig/apps/s_client.c	2016-11-28 14:01:29.018109410 +0000
++++ openssl-1.0.1m/apps/s_client.c	2016-11-28 14:01:29.130108920 +0000
+@@ -353,6 +353,13 @@ static void sc_usage(void)
+     BIO_printf(bio_err, " -jpake arg    - JPAKE secret to use\n");
  # endif
  #endif
++<<<<<<<
++=======
 +	BIO_printf(bio_err," -cutthrough       - enable 1-RTT full-handshake for strong ciphers\n");
- 	BIO_printf(bio_err," -legacy_renegotiation - enable use of legacy renegotiation (dangerous)\n");
- #ifndef OPENSSL_NO_SRTP
- 	BIO_printf(bio_err," -use_srtp profiles - Offer SRTP key management with a colon-separated profile list\n");
-@@ -582,6 +583,7 @@ int MAIN(int argc, char **argv)
- 	EVP_PKEY *key = NULL;
- 	char *CApath=NULL,*CAfile=NULL,*cipher=NULL;
- 	int reconnect=0,badop=0,verify=SSL_VERIFY_NONE,bugs=0;
++	BIO_printf(bio_err," -legacy_renegotiation - enable use of legacy renegotiation (dangerous)\n");
++#ifndef OPENSSL_NO_SRTP
++	BIO_printf(bio_err," -use_srtp profiles - Offer SRTP key management with a colon-separated profile list\n");
++>>>>>>>
+ #ifndef OPENSSL_NO_SRP
+     BIO_printf(bio_err,
+                " -srpuser user     - SRP authentification for 'user'\n");
+@@ -579,6 +586,16 @@ typedef struct tlsextnextprotoctx_st {
+ 
+ static tlsextnextprotoctx next_proto;
+ 
++<<<<<<<
++=======
++	EVP_PKEY *key = NULL;
++	char *CApath=NULL,*CAfile=NULL,*cipher=NULL;
++	int reconnect=0,badop=0,verify=SSL_VERIFY_NONE,bugs=0;
 +	int cutthrough=0;
- 	int crlf=0;
- 	int write_tty,read_tty,write_ssl,read_ssl,tty_on,ssl_pending;
- 	SSL_CTX *ctx=NULL;
-@@ -893,6 +895,8 @@ int MAIN(int argc, char **argv)
- 			}
++	int crlf=0;
++	int write_tty,read_tty,write_ssl,read_ssl,tty_on,ssl_pending;
++	SSL_CTX *ctx=NULL;
++>>>>>>>
+ static int next_proto_cb(SSL *s, unsigned char **out, unsigned char *outlen,
+                          const unsigned char *in, unsigned int inlen,
+                          void *arg)
+@@ -919,6 +936,14 @@ int MAIN(int argc, char **argv)
+         }
  # endif
  #endif
++<<<<<<<
++=======
 +		else if (strcmp(*argv,"-cutthrough") == 0)
 +			cutthrough=1;
- 		else if (strcmp(*argv,"-serverpref") == 0)
- 			off|=SSL_OP_CIPHER_SERVER_PREFERENCE;
- 		else if (strcmp(*argv,"-legacy_renegotiation") == 0)
-@@ -1168,6 +1172,15 @@ bad:
- 		SSL_CTX_set_next_proto_select_cb(ctx, next_proto_cb, &next_proto);
++		else if (strcmp(*argv,"-serverpref") == 0)
++			off|=SSL_OP_CIPHER_SERVER_PREFERENCE;
++		else if (strcmp(*argv,"-legacy_renegotiation") == 0)
++>>>>>>>
+         else if (strcmp(*argv, "-serverpref") == 0)
+             off |= SSL_OP_CIPHER_SERVER_PREFERENCE;
+         else if (strcmp(*argv, "-legacy_renegotiation") == 0)
+@@ -1173,6 +1198,21 @@ int MAIN(int argc, char **argv)
+             SSL_CTX_set_cipher_list(ctx, getenv("SSL_CIPHER"));
  #endif
  
++<<<<<<<
++=======
 +	/* Enable handshake cutthrough for client connections using
 +	 * strong ciphers. */
 +	if (cutthrough)
@@ -38,15 +61,21 @@
 +		SSL_CTX_set_mode(ctx, ssl_mode);
 +		}
 +
- 	if (state) SSL_CTX_set_info_callback(ctx,apps_ssl_info_callback);
- 	if (cipher != NULL)
- 		if(!SSL_CTX_set_cipher_list(ctx,cipher)) {
---- openssl-1.0.1k.orig/ssl/s3_clnt.c	2016-11-28 11:42:08.270427243 +0000
-+++ openssl-1.0.1k/ssl/s3_clnt.c	2016-11-28 11:42:08.338424645 +0000
-@@ -216,6 +216,24 @@ int ssl3_connect(SSL *s)
- 		}
++	if (state) SSL_CTX_set_info_callback(ctx,apps_ssl_info_callback);
++	if (cipher != NULL)
++		if(!SSL_CTX_set_cipher_list(ctx,cipher)) {
++>>>>>>>
+     SSL_CTX_set_verify(ctx, verify, verify_callback);
+     if (!set_cert_key_stuff(ctx, cert, key))
+         goto end;
+--- openssl-1.0.1m.orig/ssl/s3_clnt.c	2016-11-28 14:01:29.074109166 +0000
++++ openssl-1.0.1m/ssl/s3_clnt.c	2016-11-28 14:01:29.166108763 +0000
+@@ -215,6 +215,30 @@ int ssl3_connect(SSL *s)
+     }
  #endif
  
++<<<<<<<
++=======
 +// BEGIN android-added
 +#if 0
 +/* Send app data in separate packet, otherwise, some particular site
@@ -65,17 +94,27 @@
 +// BEGIN android-added
 +#endif
 +// END android-added
- 	for (;;)
- 		{
- 		state=s->state;
-@@ -513,14 +531,31 @@ int ssl3_connect(SSL *s)
- 				}
- 			else
- 				{
--#ifndef OPENSSL_NO_TLSEXT
--				/* Allow NewSessionTicket if ticket expected */
--				if (s->tlsext_ticket_expected)
--					s->s3->tmp.next_state=SSL3_ST_CR_SESSION_TICKET_A;
++	for (;;)
++		{
++		state=s->state;
++>>>>>>>
+     for (;;) {
+         state = s->state;
+ 
+@@ -304,12 +328,48 @@ int ssl3_connect(SSL *s)
+ 
+             if (s->hit) {
+                 s->state = SSL3_ST_CR_FINISHED_A;
++<<<<<<<
+ #ifndef OPENSSL_NO_TLSEXT
+                 if (s->tlsext_ticket_expected) {
+                     /* receive renewed session ticket */
+                     s->state = SSL3_ST_CR_SESSION_TICKET_A;
+                 }
++=======
++				}
++			else
++				{
 +				if ((SSL_get_mode(s) & SSL_MODE_HANDSHAKE_CUTTHROUGH) && SSL_get_cipher_bits(s, NULL) >= 128
 +				    && s->s3->previous_server_finished_len == 0 /* no cutthrough on renegotiation (would complicate the state machine) */
 +				   )
@@ -91,25 +130,32 @@
 +						s->s3->tmp.next_state=SSL3_ST_CUTTHROUGH_COMPLETE;
 +						}
 +					}
- 				else
++				else
 +					{
 +#ifndef OPENSSL_NO_TLSEXT
 +					/* Allow NewSessionTicket if ticket expected */
 +					if (s->tlsext_ticket_expected)
 +						s->s3->tmp.next_state=SSL3_ST_CR_SESSION_TICKET_A;
 +					else
++>>>>>>>
  #endif
--				
--				s->s3->tmp.next_state=SSL3_ST_CR_FINISHED_A;
++<<<<<<<
++=======
 +						s->s3->tmp.next_state=SSL3_ST_CR_FINISHED_A;
 +					}
- 				}
- 			s->init_num=0;
- 			break;
-@@ -568,6 +603,24 @@ int ssl3_connect(SSL *s)
- 			s->state=s->s3->tmp.next_state;
- 			break;
++				}
++			s->init_num=0;
++			break;
++>>>>>>>
+             } else
+                 s->state = SSL3_ST_CR_CERT_A;
+             s->init_num = 0;
+@@ -566,6 +626,30 @@ int ssl3_connect(SSL *s)
+             s->init_num = 0;
+             break;
  
++<<<<<<<
++=======
 +		case SSL3_ST_CUTTHROUGH_COMPLETE:
 +#ifndef OPENSSL_NO_TLSEXT
 +			/* Allow NewSessionTicket if ticket expected */
@@ -128,19 +174,25 @@
 +			goto end;
 +			/* break; */
 +
- 		case SSL_ST_OK:
- 			/* clean a few things up */
- 			ssl3_cleanup_key_block(s);
---- openssl-1.0.1k.orig/ssl/s3_lib.c	2016-11-28 11:42:08.270427243 +0000
-+++ openssl-1.0.1k/ssl/s3_lib.c	2016-11-28 11:42:08.338424645 +0000
-@@ -4246,9 +4246,22 @@ int ssl3_write(SSL *s, const void *buf,
++		case SSL_ST_OK:
++			/* clean a few things up */
++			ssl3_cleanup_key_block(s);
++>>>>>>>
+         case SSL3_ST_CW_FLUSH:
+             s->rwstate = SSL_WRITING;
+             if (BIO_flush(s->wbio) <= 0) {
+--- openssl-1.0.1m.orig/ssl/s3_lib.c	2016-11-28 14:01:29.074109166 +0000
++++ openssl-1.0.1m/ssl/s3_lib.c	2016-11-28 14:01:29.194108640 +0000
+@@ -4236,6 +4236,29 @@ int ssl3_write(SSL *s, const void *buf,
+ }
  
  static int ssl3_read_internal(SSL *s, void *buf, int len, int peek)
- 	{
--	int ret;
++<<<<<<<
++=======
++	{
 +	int n,ret;
- 	
- 	clear_sys_error();
++	
++	clear_sys_error();
 +	if ((s->s3->flags & SSL3_FLAGS_POP_BUFFER) && (s->wbio == s->bbio))
 +		{
 +		/* Deal with an application that calls SSL_read() when handshake data
@@ -154,15 +206,26 @@
 +			s->rwstate=SSL_NOTHING;
 +			}
 +		}
- 	if (s->s3->renegotiate) ssl3_renegotiate_check(s);
- 	s->s3->in_read_app_data=1;
- 	ret=s->method->ssl_read_bytes(s,SSL3_RT_APPLICATION_DATA,buf,len,peek);
---- openssl-1.0.1k.orig/ssl/ssl.h	2016-11-28 11:42:08.270427243 +0000
-+++ openssl-1.0.1k/ssl/ssl.h	2016-11-28 11:42:08.338424645 +0000
-@@ -646,6 +646,16 @@ struct ssl_session_st
-  * TLS only.)  "Released" buffers are put onto a free-list in the context
-  * or just freed (depending on the context's setting for freelist_max_len). */
- #define SSL_MODE_RELEASE_BUFFERS 0x00000010L
++	if (s->s3->renegotiate) ssl3_renegotiate_check(s);
++	s->s3->in_read_app_data=1;
++	ret=s->method->ssl_read_bytes(s,SSL3_RT_APPLICATION_DATA,buf,len,peek);
++>>>>>>>
+ {
+     int ret;
+ 
+--- openssl-1.0.1m.orig/ssl/ssl.h	2016-11-28 14:01:29.074109166 +0000
++++ openssl-1.0.1m/ssl/ssl.h	2016-11-28 14:01:29.210108571 +0000
+@@ -668,8 +668,25 @@ struct ssl_session_st {
+  * just freed (depending on the context's setting for freelist_max_len).
+  */
+ # define SSL_MODE_RELEASE_BUFFERS 0x00000010L
++<<<<<<<
+ /*
+  * Send the current time in the Random fields of the ClientHello and
++=======
++ * TLS only.)  "Released" buffers are put onto a free-list in the context
++ * or just freed (depending on the context's setting for freelist_max_len). */
++#define SSL_MODE_RELEASE_BUFFERS 0x00000010L
 +<<<<<<<
 +=======
 +/* When set, clients may send application data before receipt of CCS
@@ -173,39 +236,56 @@
 +/* Note: SSL[_CTX]_set_{options,mode} use |= op on the previous value,
 + * they cannot be used to clear bits. */
 +>>>>>>>
- /* Send the current time in the Random fields of the ClientHello and
++/* Send the current time in the Random fields of the ClientHello and
++>>>>>>>
   * ServerHello records for compatibility with hypothetical implementations
   * that require it.
-@@ -1435,10 +1445,12 @@ extern "C" {
- /* Is the SSL_connection established? */
- #define SSL_get_state(a)		SSL_state(a)
- #define SSL_is_init_finished(a)		(SSL_state(a) == SSL_ST_OK)
--#define SSL_in_init(a)			(SSL_state(a)&SSL_ST_INIT)
+  */
+@@ -1502,7 +1519,19 @@ struct ssl_st {
+     /* ctx for SRP authentication */
+     SRP_CTX srp_ctx;
+ #  endif
++<<<<<<<
+ };
++=======
++/* Is the SSL_connection established? */
++#define SSL_get_state(a)		SSL_state(a)
++#define SSL_is_init_finished(a)		(SSL_state(a) == SSL_ST_OK)
 +#define SSL_in_init(a)			((SSL_state(a)&SSL_ST_INIT) && \
 +					!SSL_cutthrough_complete(a))
- #define SSL_in_before(a)		(SSL_state(a)&SSL_ST_BEFORE)
- #define SSL_in_connect_init(a)		(SSL_state(a)&SSL_ST_CONNECT)
- #define SSL_in_accept_init(a)		(SSL_state(a)&SSL_ST_ACCEPT)
++#define SSL_in_before(a)		(SSL_state(a)&SSL_ST_BEFORE)
++#define SSL_in_connect_init(a)		(SSL_state(a)&SSL_ST_CONNECT)
++#define SSL_in_accept_init(a)		(SSL_state(a)&SSL_ST_ACCEPT)
 +int SSL_cutthrough_complete(const SSL *s);
++>>>>>>>
  
- /* The following 2 states are kept in ssl->rstate when reads fail,
-  * you should not need these */
---- openssl-1.0.1k.orig/ssl/ssl3.h	2016-11-28 11:42:08.270427243 +0000
-+++ openssl-1.0.1k/ssl/ssl3.h	2016-11-28 11:42:08.338424645 +0000
-@@ -569,6 +569,7 @@ typedef struct ssl3_state_st
- /*client */
+ # endif
+ 
+--- openssl-1.0.1m.orig/ssl/ssl3.h	2016-11-28 14:01:29.074109166 +0000
++++ openssl-1.0.1m/ssl/ssl3.h	2016-11-28 14:01:29.214108553 +0000
+@@ -594,6 +594,14 @@ typedef struct ssl3_state_st {
+  * client
+  */
  /* extra state */
- #define SSL3_ST_CW_FLUSH		(0x100|SSL_ST_CONNECT)
++<<<<<<<
++=======
++#define SSL3_ST_CW_FLUSH		(0x100|SSL_ST_CONNECT)
 +#define SSL3_ST_CUTTHROUGH_COMPLETE	(0x101|SSL_ST_CONNECT)
- #ifndef OPENSSL_NO_SCTP
- #define DTLS1_SCTP_ST_CW_WRITE_SOCK			(0x310|SSL_ST_CONNECT)
- #define DTLS1_SCTP_ST_CR_READ_SOCK			(0x320|SSL_ST_CONNECT)
---- openssl-1.0.1k.orig/ssl/ssl_lib.c	2016-11-28 11:42:08.270427243 +0000
-+++ openssl-1.0.1k/ssl/ssl_lib.c	2016-11-28 11:42:08.338424645 +0000
-@@ -3281,6 +3281,19 @@ void SSL_set_msg_callback(SSL *ssl, void
- 	SSL_callback_ctrl(ssl, SSL_CTRL_SET_MSG_CALLBACK, (void (*)(void))cb);
- 	}
++#ifndef OPENSSL_NO_SCTP
++#define DTLS1_SCTP_ST_CW_WRITE_SOCK			(0x310|SSL_ST_CONNECT)
++#define DTLS1_SCTP_ST_CR_READ_SOCK			(0x320|SSL_ST_CONNECT)
++>>>>>>>
+ # define SSL3_ST_CW_FLUSH                (0x100|SSL_ST_CONNECT)
+ # ifndef OPENSSL_NO_SCTP
+ #  define DTLS1_SCTP_ST_CW_WRITE_SOCK                     (0x310|SSL_ST_CONNECT)
+--- openssl-1.0.1m.orig/ssl/ssl_lib.c	2016-11-28 14:01:29.074109166 +0000
++++ openssl-1.0.1m/ssl/ssl_lib.c	2016-11-28 14:01:29.222108518 +0000
+@@ -3284,6 +3284,25 @@ EVP_MD_CTX *ssl_replace_hash(EVP_MD_CTX
+     return *hash;
+ }
  
++<<<<<<<
++=======
 +int SSL_cutthrough_complete(const SSL *s)
 +	{
 +	return (!s->server &&                 /* cutthrough only applies to clients */
@@ -219,64 +299,95 @@
 +			s->state == SSL3_ST_CR_FINISHED_A));
 +	}
 +
- /* Allocates new EVP_MD_CTX and sets pointer to it into given pointer
-  * vairable, freeing  EVP_MD_CTX previously stored in that variable, if
-  * any. If EVP_MD pointer is passed, initializes ctx with this md
---- openssl-1.0.1k.orig/ssl/ssltest.c	2016-11-28 11:42:08.270427243 +0000
-+++ openssl-1.0.1k/ssl/ssltest.c	2016-11-28 11:42:08.338424645 +0000
-@@ -368,9 +368,14 @@ static void sv_usage(void)
- 	               "                 Use \"openssl ecparam -list_curves\" for all names\n"  \
- 	               "                 (default is sect163r2).\n");
- #endif
++/* Allocates new EVP_MD_CTX and sets pointer to it into given pointer
++ * vairable, freeing  EVP_MD_CTX previously stored in that variable, if
++ * any. If EVP_MD pointer is passed, initializes ctx with this md
++>>>>>>>
+ void ssl_clear_hash_ctx(EVP_MD_CTX **hash)
+ {
+ 
+--- openssl-1.0.1m.orig/ssl/ssltest.c	2016-11-28 14:01:29.074109166 +0000
++++ openssl-1.0.1m/ssl/ssltest.c	2016-11-28 14:01:29.234108466 +0000
+@@ -386,6 +386,21 @@ static void sv_usage(void)
+             "                    When this option is requested, the cipherlist\n"
+             "                    tests are run instead of handshake tests.\n");
+ }
 +<<<<<<<
- 	fprintf(stderr," -test_cipherlist - Verifies the order of the ssl cipher lists.\n"
- 		       "                    When this option is requested, the cipherlist\n"
- 		       "                    tests are run instead of handshake tests.\n");
++=======
++	               "                 Use \"openssl ecparam -list_curves\" for all names\n"  \
++	               "                 (default is sect163r2).\n");
++#endif
++<<<<<<<
++	fprintf(stderr," -test_cipherlist - Verifies the order of the ssl cipher lists.\n"
++		       "                    When this option is requested, the cipherlist\n"
++		       "                    tests are run instead of handshake tests.\n");
 +=======
 +	fprintf(stderr," -test_cipherlist - verifies the order of the ssl cipher lists\n");
 +	fprintf(stderr," -cutthrough      - enable 1-RTT full-handshake for strong ciphers\n");
 +>>>>>>>
- 	}
++	}
++>>>>>>>
  
  static void print_details(SSL *c_ssl, const char *prefix)
-@@ -551,7 +556,11 @@ int main(int argc, char *argv[])
+ {
+@@ -556,7 +571,15 @@ int main(int argc, char *argv[])
  #ifdef OPENSSL_FIPS
- 	int fips_mode=0;
+     int fips_mode = 0;
  #endif
 +<<<<<<<
-         int no_protocol = 0;
+     int no_protocol = 0;
++=======
++<<<<<<<
++        int no_protocol = 0;
 +=======
 +	int cutthrough = 0;
 +>>>>>>>
++>>>>>>>
  
- 	verbose = 0;
- 	debug = 0;
-@@ -783,6 +792,10 @@ int main(int argc, char *argv[])
- 			{
- 			test_cipherlist = 1;
- 			}
+     verbose = 0;
+     debug = 0;
+@@ -780,6 +803,19 @@ int main(int argc, char *argv[])
+         goto end;
+     }
+ 
++<<<<<<<
++=======
++			{
++			test_cipherlist = 1;
++			}
 +		else if (strcmp(*argv, "-cutthrough") == 0)
 +			{
 +			cutthrough = 1;
 +			}
- 		else
- 			{
- 			fprintf(stderr,"unknown option %s\n",*argv);
-@@ -945,6 +958,12 @@ bad:
- 		SSL_CTX_set_cipher_list(c_ctx,cipher);
- 		SSL_CTX_set_cipher_list(s_ctx,cipher);
- 		}
++		else
++			{
++			fprintf(stderr,"unknown option %s\n",*argv);
++>>>>>>>
+     if (ssl2 + ssl3 + tls1 > 1) {
+         fprintf(stderr, "At most one of -ssl2, -ssl3, or -tls1 should "
+                 "be requested.\n");
+@@ -2254,7 +2290,19 @@ static void free_tmp_rsa(void)
+         rsa_tmp = NULL;
+     }
+ }
++<<<<<<<
+ #endif
++=======
++		SSL_CTX_set_cipher_list(c_ctx,cipher);
++		SSL_CTX_set_cipher_list(s_ctx,cipher);
++		}
 +	if (cutthrough)
 +		{
 +		int ssl_mode = SSL_CTX_get_mode(c_ctx);
 +		ssl_mode |= SSL_MODE_HANDSHAKE_CUTTHROUGH;
 +		SSL_CTX_set_mode(c_ctx, ssl_mode);
 +		}
++>>>>>>>
  
  #ifndef OPENSSL_NO_DH
- 	if (!no_dhe)
---- openssl-1.0.1k.orig/test/testssl	2016-11-28 11:42:08.278426938 +0000
-+++ openssl-1.0.1k/test/testssl	2016-11-28 11:42:08.338424645 +0000
+ /*-
+--- openssl-1.0.1m.orig/test/testssl	2016-11-28 14:01:29.078109147 +0000
++++ openssl-1.0.1m/test/testssl	2016-11-28 14:01:29.238108448 +0000
 @@ -70,6 +70,9 @@ $ssltest -client_auth $CA $extra || exit
  echo test sslv2/sslv3 with both client and server authentication
  $ssltest -server_auth -client_auth $CA $extra || exit 1
