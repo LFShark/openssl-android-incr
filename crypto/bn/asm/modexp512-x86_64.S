@@ -433,7 +433,7 @@ mont_reduce:
 	addq	$64,%rsi
 	leaq	296(%rsp),%rcx
 
-	call	MULADD_128x512			
+	call	MULADD_128x512
 
 	movq	384(%rsp),%rax
 
@@ -477,7 +477,7 @@ mont_reduce:
 	movq	(%rcx),%r8
 	movq	8(%rcx),%r9
 
-	call	MULADD_128x512			
+	call	MULADD_128x512
 
 
 
