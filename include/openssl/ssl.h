@@ -651,6 +651,7 @@ struct ssl_session_st
  * and Finished.  This mode enables full-handshakes to 'complete' in
  * one RTT. */
 #define SSL_MODE_HANDSHAKE_CUTTHROUGH 0x00000020L
+
 /* Note: SSL[_CTX]_set_{options,mode} use |= op on the previous value,
  * they cannot be used to clear bits. */
 /* Send the current time in the Random fields of the ClientHello and
