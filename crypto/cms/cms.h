@@ -57,6 +57,9 @@
 
 # include <openssl/x509.h>
 
+# ifdef OPENSSL_NO_CMS
+#  error CMS is disabled.
+# endif
 
 #ifdef __cplusplus
 extern "C" {

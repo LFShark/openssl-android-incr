@@ -1,6 +1,6 @@
 # Auto-generated - DO NOT EDIT!
 # To regenerate, edit openssl.config, then run:
-#     ./import_openssl.sh import /path/to/openssl-1.0.2.tar.gz
+#     ./import_openssl.sh import /path/to/openssl-1.0.2a.tar.gz
 #
 # Before including this file, the local Android.mk must define the following
 # variables:
@@ -276,9 +276,9 @@ common_src_files := \
   crypto/ec/ecp_oct.c \
   crypto/ec/ecp_smpl.c \
   crypto/ecdh/ech_err.c \
+  crypto/ecdh/ech_kdf.c \
   crypto/ecdh/ech_key.c \
   crypto/ecdh/ech_lib.c \
-  crypto/ecdh/ech_kdf.c \
   crypto/ecdh/ech_ossl.c \
   crypto/ecdsa/ecs_asn1.c \
   crypto/ecdsa/ecs_err.c \

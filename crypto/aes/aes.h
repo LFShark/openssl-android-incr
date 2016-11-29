@@ -53,7 +53,6 @@
 # define HEADER_AES_H
 
 # include <openssl/opensslconf.h>
-# include <openssl/modes.h> //shark
 
 # ifdef OPENSSL_NO_AES
 #  error AES is disabled.

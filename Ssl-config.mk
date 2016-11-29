@@ -1,6 +1,6 @@
 # Auto-generated - DO NOT EDIT!
 # To regenerate, edit openssl.config, then run:
-#     ./import_openssl.sh import /path/to/openssl-1.0.2.tar.gz
+#     ./import_openssl.sh import /path/to/openssl-1.0.2a.tar.gz
 #
 # Before including this file, the local Android.mk must define the following
 # variables:
@@ -78,7 +78,7 @@ common_src_files := \
   ssl/t1_reneg.c \
   ssl/tls_srp.c \
   ssl/t1_trce.c \
-  ssl/ssl_utst.c \
+  ssl/ssl_utst.c
 
 common_c_includes := \
   $(LOCAL_PATH)/ \

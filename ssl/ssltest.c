@@ -752,6 +752,21 @@ static void sv_usage(void)
     fprintf(stderr,
             " -alpn_expected <string> - the ALPN protocol that should be negotiated\n");
 }
+<<<<<<<
+=======
+	               "                 Use \"openssl ecparam -list_curves\" for all names\n"  \
+	               "                 (default is sect163r2).\n");
+#endif
+<<<<<<<
+	fprintf(stderr," -test_cipherlist - Verifies the order of the ssl cipher lists.\n"
+		       "                    When this option is requested, the cipherlist\n"
+		       "                    tests are run instead of handshake tests.\n");
+=======
+	fprintf(stderr," -test_cipherlist - verifies the order of the ssl cipher lists\n");
+	fprintf(stderr," -cutthrough      - enable 1-RTT full-handshake for strong ciphers\n");
+>>>>>>>
+	}
+>>>>>>>
 
 static void print_details(SSL *c_ssl, const char *prefix)
 {
@@ -922,7 +937,15 @@ int main(int argc, char *argv[])
 #ifdef OPENSSL_FIPS
     int fips_mode = 0;
 #endif
+<<<<<<<
     int no_protocol = 0;
+=======
+<<<<<<<
+        int no_protocol = 0;
+=======
+	int cutthrough = 0;
+>>>>>>>
+>>>>>>>
 
     verbose = 0;
     debug = 0;
@@ -1172,6 +1195,19 @@ int main(int argc, char *argv[])
         goto end;
     }
 
+<<<<<<<
+=======
+			{
+			test_cipherlist = 1;
+			}
+		else if (strcmp(*argv, "-cutthrough") == 0)
+			{
+			cutthrough = 1;
+			}
+		else
+			{
+			fprintf(stderr,"unknown option %s\n",*argv);
+>>>>>>>
     if (ssl2 + ssl3 + tls1 > 1) {
         fprintf(stderr, "At most one of -ssl2, -ssl3, or -tls1 should "
                 "be requested.\n");
@@ -2073,7 +2109,7 @@ int doit(SSL *s_ssl, SSL *c_ssl, long count)
         if (!do_client && !do_server) {
             fprintf(stdout, "ERROR IN STARTUP\n");
             ERR_print_errors(bio_err);
-            break;
+            goto err;
         }
         if (do_client && !(done & C_DONE)) {
             if (c_write) {
@@ -2754,7 +2790,19 @@ static void free_tmp_rsa(void)
         rsa_tmp = NULL;
     }
 }
+<<<<<<<
 #endif
+=======
+		SSL_CTX_set_cipher_list(c_ctx,cipher);
+		SSL_CTX_set_cipher_list(s_ctx,cipher);
+		}
+	if (cutthrough)
+		{
+		int ssl_mode = SSL_CTX_get_mode(c_ctx);
+		ssl_mode |= SSL_MODE_HANDSHAKE_CUTTHROUGH;
+		SSL_CTX_set_mode(c_ctx, ssl_mode);
+		}
+>>>>>>>
 
 #ifndef OPENSSL_NO_DH
 /*-
