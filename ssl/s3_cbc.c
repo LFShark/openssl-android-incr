@@ -125,7 +125,7 @@ int tls1_cbc_remove_padding(const SSL *s,
     unsigned padding_length, good, to_check, i;
     const unsigned overhead = 1 /* padding length byte */  + mac_size;
     /* Check if version requires explicit IV */
-    if (s->version >= TLS1_1_VERSION || s->version == DTLS1_BAD_VER) {
+    if (SSL_USE_EXPLICIT_IV(s)) {
         /*
          * These lengths are all public so we can test them in non-constant
          * time.
@@ -149,7 +149,7 @@ int tls1_cbc_remove_padding(const SSL *s,
      */
     if ((s->options & SSL_OP_TLS_BLOCK_PADDING_BUG) && !s->expand) {
         /* First packet is even in size, so check */
-        if ((CRYPTO_memcmp(s->s3->read_sequence, "\0\0\0\0\0\0\0\0", 8) == 0) &&
+        if ((memcmp(s->s3->read_sequence, "\0\0\0\0\0\0\0\0", 8) == 0) &&
             !(padding_length & 1)) {
             s->s3->flags |= TLS1_FLAGS_TLS_PADDING_BUG;
         }
@@ -411,9 +411,8 @@ char ssl3_cbc_record_digest_supported(const EVP_MD_CTX *ctx)
  * functions, above, we know that data_plus_mac_size is large enough to contain
  * a padding byte and MAC. (If the padding was invalid, it might contain the
  * padding too. )
- * Returns 1 on success or 0 on error
  */
-int ssl3_cbc_digest_record(const EVP_MD_CTX *ctx,
+void ssl3_cbc_digest_record(const EVP_MD_CTX *ctx,
                             unsigned char *md_out,
                             size_t *md_out_size,
                             const unsigned char header[13],
@@ -456,8 +455,7 @@ int ssl3_cbc_digest_record(const EVP_MD_CTX *ctx,
 
     switch (EVP_MD_CTX_type(ctx)) {
     case NID_md5:
-        if (MD5_Init((MD5_CTX *)md_state.c) <= 0)
-            return 0;
+        MD5_Init((MD5_CTX *)md_state.c);
         md_final_raw = tls1_md5_final_raw;
         md_transform =
             (void (*)(void *ctx, const unsigned char *block))MD5_Transform;
@@ -466,8 +464,7 @@ int ssl3_cbc_digest_record(const EVP_MD_CTX *ctx,
         length_is_big_endian = 0;
         break;
     case NID_sha1:
-        if (SHA1_Init((SHA_CTX *)md_state.c) <= 0)
-            return 0;
+        SHA1_Init((SHA_CTX *)md_state.c);
         md_final_raw = tls1_sha1_final_raw;
         md_transform =
             (void (*)(void *ctx, const unsigned char *block))SHA1_Transform;
@@ -475,16 +472,14 @@ int ssl3_cbc_digest_record(const EVP_MD_CTX *ctx,
         break;
 #ifndef OPENSSL_NO_SHA256
     case NID_sha224:
-        if (SHA224_Init((SHA256_CTX *)md_state.c) <= 0)
-            return 0;
+        SHA224_Init((SHA256_CTX *)md_state.c);
         md_final_raw = tls1_sha256_final_raw;
         md_transform =
             (void (*)(void *ctx, const unsigned char *block))SHA256_Transform;
         md_size = 224 / 8;
         break;
     case NID_sha256:
-        if (SHA256_Init((SHA256_CTX *)md_state.c) <= 0)
-            return 0;
+        SHA256_Init((SHA256_CTX *)md_state.c);
         md_final_raw = tls1_sha256_final_raw;
         md_transform =
             (void (*)(void *ctx, const unsigned char *block))SHA256_Transform;
@@ -493,8 +488,7 @@ int ssl3_cbc_digest_record(const EVP_MD_CTX *ctx,
 #endif
 #ifndef OPENSSL_NO_SHA512
     case NID_sha384:
-        if (SHA384_Init((SHA512_CTX *)md_state.c) <= 0)
-            return 0;
+        SHA384_Init((SHA512_CTX *)md_state.c);
         md_final_raw = tls1_sha512_final_raw;
         md_transform =
             (void (*)(void *ctx, const unsigned char *block))SHA512_Transform;
@@ -503,8 +497,7 @@ int ssl3_cbc_digest_record(const EVP_MD_CTX *ctx,
         md_length_size = 16;
         break;
     case NID_sha512:
-        if (SHA512_Init((SHA512_CTX *)md_state.c) <= 0)
-            return 0;
+        SHA512_Init((SHA512_CTX *)md_state.c);
         md_final_raw = tls1_sha512_final_raw;
         md_transform =
             (void (*)(void *ctx, const unsigned char *block))SHA512_Transform;
@@ -521,7 +514,7 @@ int ssl3_cbc_digest_record(const EVP_MD_CTX *ctx,
         OPENSSL_assert(0);
         if (md_out_size)
             *md_out_size = -1;
-        return 0;
+        return;
     }
 
     OPENSSL_assert(md_length_size <= MAX_HASH_BIT_COUNT_BYTES);
@@ -646,22 +639,12 @@ int ssl3_cbc_digest_record(const EVP_MD_CTX *ctx,
 
     if (k > 0) {
         if (is_sslv3) {
-            unsigned overhang;
-
             /*
              * The SSLv3 header is larger than a single block. overhang is
              * the number of bytes beyond a single block that the header
-             * consumes: either 7 bytes (SHA1) or 11 bytes (MD5). There are no
-             * ciphersuites in SSLv3 that are not SHA1 or MD5 based and
-             * therefore we can be confident that the header_length will be
-             * greater than |md_block_size|. However we add a sanity check just
-             * in case
+             * consumes: either 7 bytes (SHA1) or 11 bytes (MD5).
              */
-            if (header_length <= md_block_size) {
-                /* Should never happen */
-                return 0;
-            }
-            overhang = header_length - md_block_size;
+            unsigned overhang = header_length - md_block_size;
             md_transform(md_state.c, header);
             memcpy(first_block, header + md_block_size, overhang);
             memcpy(first_block + overhang, data, md_block_size - overhang);
@@ -740,34 +723,26 @@ int ssl3_cbc_digest_record(const EVP_MD_CTX *ctx,
     }
 
     EVP_MD_CTX_init(&md_ctx);
-    if (EVP_DigestInit_ex(&md_ctx, ctx->digest, NULL /* engine */ ) <= 0)
-        goto err;
+    EVP_DigestInit_ex(&md_ctx, ctx->digest, NULL /* engine */ );
     if (is_sslv3) {
         /* We repurpose |hmac_pad| to contain the SSLv3 pad2 block. */
         memset(hmac_pad, 0x5c, sslv3_pad_length);
 
-        if (EVP_DigestUpdate(&md_ctx, mac_secret, mac_secret_length) <= 0
-                || EVP_DigestUpdate(&md_ctx, hmac_pad, sslv3_pad_length) <= 0
-                || EVP_DigestUpdate(&md_ctx, mac_out, md_size) <= 0)
-            goto err;
+        EVP_DigestUpdate(&md_ctx, mac_secret, mac_secret_length);
+        EVP_DigestUpdate(&md_ctx, hmac_pad, sslv3_pad_length);
+        EVP_DigestUpdate(&md_ctx, mac_out, md_size);
     } else {
         /* Complete the HMAC in the standard manner. */
         for (i = 0; i < md_block_size; i++)
             hmac_pad[i] ^= 0x6a;
 
-        if (EVP_DigestUpdate(&md_ctx, hmac_pad, md_block_size) <= 0
-                || EVP_DigestUpdate(&md_ctx, mac_out, md_size) <= 0)
-            goto err;
+        EVP_DigestUpdate(&md_ctx, hmac_pad, md_block_size);
+        EVP_DigestUpdate(&md_ctx, mac_out, md_size);
     }
     EVP_DigestFinal(&md_ctx, md_out, &md_out_size_u);
     if (md_out_size)
         *md_out_size = md_out_size_u;
     EVP_MD_CTX_cleanup(&md_ctx);
-
-    return 1;
-err:
-    EVP_MD_CTX_cleanup(&md_ctx);
-    return 0;
 }
 
 #ifdef OPENSSL_FIPS

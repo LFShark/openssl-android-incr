@@ -1,4 +1,4 @@
-/* crypto/aes/aes.h */
+/* crypto/aes/aes.h -*- mode:C; c-file-style: "eay" -*- */
 /* ====================================================================
  * Copyright (c) 1998-2002 The OpenSSL Project.  All rights reserved.
  *
@@ -53,6 +53,7 @@
 # define HEADER_AES_H
 
 # include <openssl/opensslconf.h>
+# include <openssl/modes.h> //shark
 
 # ifdef OPENSSL_NO_AES
 #  error AES is disabled.

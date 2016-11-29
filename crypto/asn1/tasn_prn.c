@@ -220,7 +220,6 @@ static int asn1_item_print_ctx(BIO *out, ASN1_VALUE **fld, int indent,
             if (!asn1_template_print_ctx(out, fld, indent,
                                          it->templates, pctx))
                 return 0;
-            break;
         }
         /* fall thru */
     case ASN1_ITYPE_MSTRING:
@@ -290,8 +289,6 @@ static int asn1_item_print_ctx(BIO *out, ASN1_VALUE **fld, int indent,
         for (i = 0, tt = it->templates; i < it->tcount; i++, tt++) {
             const ASN1_TEMPLATE *seqtt;
             seqtt = asn1_do_adb(fld, tt, 1);
-            if (!seqtt)
-                return 0;
             tmpfld = asn1_get_field_ptr(fld, seqtt);
             if (!asn1_template_print_ctx(out, tmpfld,
                                          indent + 2, seqtt, pctx))
@@ -446,8 +443,6 @@ static int asn1_print_integer_ctx(BIO *out, ASN1_INTEGER *str,
     char *s;
     int ret = 1;
     s = i2s_ASN1_INTEGER(NULL, str);
-    if (s == NULL)
-        return 0;
     if (BIO_puts(out, s) <= 0)
         ret = 0;
     OPENSSL_free(s);

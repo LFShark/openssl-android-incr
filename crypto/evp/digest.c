@@ -119,6 +119,7 @@
 
 #ifdef OPENSSL_FIPS
 # include <openssl/fips.h>
+# include "evp_locl.h"
 #endif
 
 void EVP_MD_CTX_init(EVP_MD_CTX *ctx)
@@ -145,6 +146,17 @@ int EVP_DigestInit(EVP_MD_CTX *ctx, const EVP_MD *type)
 int EVP_DigestInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl)
 {
     EVP_MD_CTX_clear_flags(ctx, EVP_MD_CTX_FLAG_CLEANED);
+#ifdef OPENSSL_FIPS
+    /* If FIPS mode switch to approved implementation if possible */
+    if (FIPS_mode()) {
+        const EVP_MD *fipsmd;
+        if (type) {
+            fipsmd = evp_get_fips_md(type);
+            if (fipsmd)
+                type = fipsmd;
+        }
+    }
+#endif
 #ifndef OPENSSL_NO_ENGINE
     /*
      * Whether it's nice or not, "Inits" can be used on "Final"'d contexts so
@@ -191,19 +203,14 @@ int EVP_DigestInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl)
             ctx->engine = impl;
         } else
             ctx->engine = NULL;
-    } else {
-        if (!ctx->digest) {
-            EVPerr(EVP_F_EVP_DIGESTINIT_EX, EVP_R_NO_DIGEST_SET);
-            return 0;
-        }
-        type = ctx->digest;
+    } else if (!ctx->digest) {
+        EVPerr(EVP_F_EVP_DIGESTINIT_EX, EVP_R_NO_DIGEST_SET);
+        return 0;
     }
 #endif
     if (ctx->digest != type) {
-        if (ctx->digest && ctx->digest->ctx_size) {
+        if (ctx->digest && ctx->digest->ctx_size)
             OPENSSL_free(ctx->md_data);
-            ctx->md_data = NULL;
-        }
         ctx->digest = type;
         if (!(ctx->flags & EVP_MD_CTX_FLAG_NO_INIT) && type->ctx_size) {
             ctx->update = type->update;
@@ -241,10 +248,10 @@ int EVP_DigestInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl)
 int EVP_DigestUpdate(EVP_MD_CTX *ctx, const void *data, size_t count)
 {
 #ifdef OPENSSL_FIPS
-    if (FIPS_mode())
-        return FIPS_digestupdate(ctx, data, count);
-#endif
+    return FIPS_digestupdate(ctx, data, count);
+#else
     return ctx->update(ctx, data, count);
+#endif
 }
 
 /* The caller can assume that this removes any secret data from the context */
@@ -259,11 +266,10 @@ int EVP_DigestFinal(EVP_MD_CTX *ctx, unsigned char *md, unsigned int *size)
 /* The caller can assume that this removes any secret data from the context */
 int EVP_DigestFinal_ex(EVP_MD_CTX *ctx, unsigned char *md, unsigned int *size)
 {
-    int ret;
 #ifdef OPENSSL_FIPS
-    if (FIPS_mode())
-        return FIPS_digestfinal(ctx, md, size);
-#endif
+    return FIPS_digestfinal(ctx, md, size);
+#else
+    int ret;
 
     OPENSSL_assert(ctx->digest->md_size <= EVP_MAX_MD_SIZE);
     ret = ctx->digest->final(ctx, md);
@@ -273,8 +279,9 @@ int EVP_DigestFinal_ex(EVP_MD_CTX *ctx, unsigned char *md, unsigned int *size)
         ctx->digest->cleanup(ctx);
         EVP_MD_CTX_set_flags(ctx, EVP_MD_CTX_FLAG_CLEANED);
     }
-    OPENSSL_cleanse(ctx->md_data, ctx->digest->ctx_size);
+    memset(ctx->md_data, 0, ctx->digest->ctx_size);
     return ret;
+#endif
 }
 
 int EVP_MD_CTX_copy(EVP_MD_CTX *out, const EVP_MD_CTX *in)

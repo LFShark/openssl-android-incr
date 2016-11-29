@@ -189,11 +189,11 @@ int MAIN(int argc, char **argv)
     if (infile == NULL)
         BIO_set_fp(in, stdin, BIO_NOCLOSE);
     else {
-        if (BIO_read_filename(in, infile) <= 0) {
-            BIO_printf(bio_err, "unable to load input file\n");
-            ERR_print_errors(bio_err);
-            goto end;
-        }
+        if (BIO_read_filename(in, infile) <= 0)
+            if (in == NULL) {
+                perror(infile);
+                goto end;
+            }
     }
 
     if (informat == FORMAT_ASN1)
@@ -235,16 +235,12 @@ int MAIN(int argc, char **argv)
         i = OBJ_obj2nid(p7->type);
         switch (i) {
         case NID_pkcs7_signed:
-            if (p7->d.sign != NULL) {
-                certs = p7->d.sign->cert;
-                crls = p7->d.sign->crl;
-            }
+            certs = p7->d.sign->cert;
+            crls = p7->d.sign->crl;
             break;
         case NID_pkcs7_signedAndEnveloped:
-            if (p7->d.signed_and_enveloped != NULL) {
-                certs = p7->d.signed_and_enveloped->cert;
-                crls = p7->d.signed_and_enveloped->crl;
-            }
+            certs = p7->d.signed_and_enveloped->cert;
+            crls = p7->d.signed_and_enveloped->crl;
             break;
         default:
             break;

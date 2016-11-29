@@ -119,7 +119,7 @@ BIO *cms_EncryptedContent_init_bio(CMS_EncryptedContentInfo *ec)
         /* Generate a random IV if we need one */
         ivlen = EVP_CIPHER_CTX_iv_length(ctx);
         if (ivlen > 0) {
-            if (RAND_bytes(iv, ivlen) <= 0)
+            if (RAND_pseudo_bytes(iv, ivlen) <= 0)
                 goto err;
             piv = iv;
         }
@@ -179,9 +179,10 @@ BIO *cms_EncryptedContent_init_bio(CMS_EncryptedContentInfo *ec)
                CMS_R_CIPHER_INITIALISATION_ERROR);
         goto err;
     }
-    if (enc) {
+
+    if (piv) {
         calg->parameter = ASN1_TYPE_new();
-        if (calg->parameter == NULL) {
+        if (!calg->parameter) {
             CMSerr(CMS_F_CMS_ENCRYPTEDCONTENT_INIT_BIO, ERR_R_MALLOC_FAILURE);
             goto err;
         }
@@ -190,16 +191,11 @@ BIO *cms_EncryptedContent_init_bio(CMS_EncryptedContentInfo *ec)
                    CMS_R_CIPHER_PARAMETER_INITIALISATION_ERROR);
             goto err;
         }
-        /* If parameter type not set omit parameter */
-        if (calg->parameter->type == V_ASN1_UNDEF) {
-            ASN1_TYPE_free(calg->parameter);
-            calg->parameter = NULL;
-        }
     }
     ok = 1;
 
  err:
-    if (ec->key && (!keep_key || !ok)) {
+    if (ec->key && !keep_key) {
         OPENSSL_cleanse(ec->key, ec->keylen);
         OPENSSL_free(ec->key);
         ec->key = NULL;

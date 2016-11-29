@@ -65,7 +65,6 @@ void BN_RECP_CTX_init(BN_RECP_CTX *recp)
     BN_init(&(recp->N));
     BN_init(&(recp->Nr));
     recp->num_bits = 0;
-    recp->shift = 0;
     recp->flags = 0;
 }
 
@@ -153,10 +152,8 @@ int BN_div_recp(BIGNUM *dv, BIGNUM *rem, const BIGNUM *m,
 
     if (BN_ucmp(m, &(recp->N)) < 0) {
         BN_zero(d);
-        if (!BN_copy(r, m)) {
-            BN_CTX_end(ctx);
+        if (!BN_copy(r, m))
             return 0;
-        }
         BN_CTX_end(ctx);
         return (1);
     }

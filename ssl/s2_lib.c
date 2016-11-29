@@ -150,13 +150,12 @@ OPENSSL_GLOBAL const SSL_CIPHER ssl2_ciphers[] = {
      SSL_RC4,
      SSL_MD5,
      SSL_SSLV2,
-     SSL_NOT_DEFAULT | SSL_NOT_EXP | SSL_MEDIUM,
+     SSL_NOT_EXP | SSL_MEDIUM,
      0,
      128,
      128,
      },
 
-# if 0
 /* RC4_128_EXPORT40_WITH_MD5 */
     {
      1,
@@ -167,12 +166,11 @@ OPENSSL_GLOBAL const SSL_CIPHER ssl2_ciphers[] = {
      SSL_RC4,
      SSL_MD5,
      SSL_SSLV2,
-     SSL_NOT_DEFAULT | SSL_EXPORT | SSL_EXP40,
+     SSL_EXPORT | SSL_EXP40,
      SSL2_CF_5_BYTE_ENC,
      40,
      128,
      },
-# endif
 
 /* RC2_128_CBC_WITH_MD5 */
     {
@@ -184,13 +182,12 @@ OPENSSL_GLOBAL const SSL_CIPHER ssl2_ciphers[] = {
      SSL_RC2,
      SSL_MD5,
      SSL_SSLV2,
-     SSL_NOT_DEFAULT | SSL_NOT_EXP | SSL_MEDIUM,
+     SSL_NOT_EXP | SSL_MEDIUM,
      0,
      128,
      128,
      },
 
-# if 0
 /* RC2_128_CBC_EXPORT40_WITH_MD5 */
     {
      1,
@@ -201,12 +198,11 @@ OPENSSL_GLOBAL const SSL_CIPHER ssl2_ciphers[] = {
      SSL_RC2,
      SSL_MD5,
      SSL_SSLV2,
-     SSL_NOT_DEFAULT | SSL_EXPORT | SSL_EXP40,
+     SSL_EXPORT | SSL_EXP40,
      SSL2_CF_5_BYTE_ENC,
      40,
      128,
      },
-# endif
 
 # ifndef OPENSSL_NO_IDEA
 /* IDEA_128_CBC_WITH_MD5 */
@@ -219,14 +215,13 @@ OPENSSL_GLOBAL const SSL_CIPHER ssl2_ciphers[] = {
      SSL_IDEA,
      SSL_MD5,
      SSL_SSLV2,
-     SSL_NOT_DEFAULT | SSL_NOT_EXP | SSL_MEDIUM,
+     SSL_NOT_EXP | SSL_MEDIUM,
      0,
      128,
      128,
      },
 # endif
 
-# if 0
 /* DES_64_CBC_WITH_MD5 */
     {
      1,
@@ -237,12 +232,11 @@ OPENSSL_GLOBAL const SSL_CIPHER ssl2_ciphers[] = {
      SSL_DES,
      SSL_MD5,
      SSL_SSLV2,
-     SSL_NOT_DEFAULT | SSL_NOT_EXP | SSL_LOW,
+     SSL_NOT_EXP | SSL_LOW,
      0,
      56,
      56,
      },
-# endif
 
 /* DES_192_EDE3_CBC_WITH_MD5 */
     {
@@ -254,7 +248,7 @@ OPENSSL_GLOBAL const SSL_CIPHER ssl2_ciphers[] = {
      SSL_3DES,
      SSL_MD5,
      SSL_SSLV2,
-     SSL_NOT_DEFAULT | SSL_NOT_EXP | SSL_HIGH,
+     SSL_NOT_EXP | SSL_HIGH,
      0,
      112,
      168,
@@ -271,7 +265,7 @@ OPENSSL_GLOBAL const SSL_CIPHER ssl2_ciphers[] = {
      SSL_RC4,
      SSL_MD5,
      SSL_SSLV2,
-     SSL_NOT_DEFAULT | SSL_NOT_EXP | SSL_LOW,
+     SSL_NOT_EXP | SSL_LOW,
      SSL2_CF_8_BYTE_ENC,
      64,
      64,
@@ -441,10 +435,7 @@ const SSL_CIPHER *ssl2_get_cipher_by_char(const unsigned char *p)
         ((unsigned long)p[1] << 8L) | (unsigned long)p[2];
     c.id = id;
     cp = OBJ_bsearch_ssl_cipher_id(&c, ssl2_ciphers, SSL2_NUM_CIPHERS);
-    if ((cp == NULL) || (cp->valid == 0))
-        return NULL;
-    else
-        return cp;
+    return cp;
 }
 
 int ssl2_put_cipher_by_char(const SSL_CIPHER *c, unsigned char *p)
@@ -502,7 +493,7 @@ int ssl2_generate_key_material(SSL *s)
 
         OPENSSL_assert(s->session->master_key_length >= 0
                        && s->session->master_key_length
-                       <= (int)sizeof(s->session->master_key));
+                       < (int)sizeof(s->session->master_key));
         EVP_DigestUpdate(&ctx, s->session->master_key,
                          s->session->master_key_length);
         EVP_DigestUpdate(&ctx, &c, 1);

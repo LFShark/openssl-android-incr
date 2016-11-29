@@ -74,6 +74,8 @@
 # include <openssl/bio.h>
 # include <openssl/err.h>
 # include <openssl/opensslconf.h>
+# include <openssl/cms.h>	//shark
+# include <openssl/modes.h> //shark
 
 #ifdef  __cplusplus
 extern "C" {

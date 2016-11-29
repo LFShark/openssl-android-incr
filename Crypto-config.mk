@@ -1,6 +1,6 @@
 # Auto-generated - DO NOT EDIT!
 # To regenerate, edit openssl.config, then run:
-#     ./import_openssl.sh import /path/to/openssl-1.0.1u.tar.gz
+#     ./import_openssl.sh import /path/to/openssl-1.0.2.tar.gz
 #
 # Before including this file, the local Android.mk must define the following
 # variables:
@@ -171,6 +171,20 @@ common_src_files := \
   crypto/cmac/cm_ameth.c \
   crypto/cmac/cm_pmeth.c \
   crypto/cmac/cmac.c \
+  crypto/cms/cms_asn1.c \
+  crypto/cms/cms_att.c \
+  crypto/cms/cms_cd.c \
+  crypto/cms/cms_dd.c \
+  crypto/cms/cms_enc.c \
+  crypto/cms/cms_env.c \
+  crypto/cms/cms_err.c \
+  crypto/cms/cms_ess.c \
+  crypto/cms/cms_io.c \
+  crypto/cms/cms_kari.c \
+  crypto/cms/cms_lib.c \
+  crypto/cms/cms_pwri.c \
+  crypto/cms/cms_sd.c \
+  crypto/cms/cms_smime.c \
   crypto/comp/c_rle.c \
   crypto/comp/c_zlib.c \
   crypto/comp/comp_err.c \
@@ -218,6 +232,8 @@ common_src_files := \
   crypto/dh/dh_err.c \
   crypto/dh/dh_gen.c \
   crypto/dh/dh_key.c \
+  crypto/dh/dh_kdf.c \
+  crypto/dh/dh_rfc5114.c \
   crypto/dh/dh_lib.c \
   crypto/dh/dh_pmeth.c \
   crypto/dsa/dsa_ameth.c \
@@ -262,6 +278,7 @@ common_src_files := \
   crypto/ecdh/ech_err.c \
   crypto/ecdh/ech_key.c \
   crypto/ecdh/ech_lib.c \
+  crypto/ecdh/ech_kdf.c \
   crypto/ecdh/ech_ossl.c \
   crypto/ecdsa/ecs_asn1.c \
   crypto/ecdsa/ecs_err.c \
@@ -304,6 +321,7 @@ common_src_files := \
   crypto/evp/digest.c \
   crypto/evp/e_aes.c \
   crypto/evp/e_aes_cbc_hmac_sha1.c \
+  crypto/evp/e_aes_cbc_hmac_sha256.c \
   crypto/evp/e_bf.c \
   crypto/evp/e_des.c \
   crypto/evp/e_des3.c \
@@ -368,6 +386,7 @@ common_src_files := \
   crypto/modes/gcm128.c \
   crypto/modes/ofb128.c \
   crypto/modes/xts128.c \
+  crypto/modes/wrap128.c \
   crypto/o_dir.c \
   crypto/o_init.c \
   crypto/o_str.c \
@@ -530,6 +549,7 @@ common_src_files := \
   crypto/x509v3/v3_skey.c \
   crypto/x509v3/v3_sxnet.c \
   crypto/x509v3/v3_utl.c \
+  crypto/x509v3/v3_scts.c \
   crypto/x509v3/v3err.c \
 
 common_c_includes := \
@@ -555,6 +575,7 @@ arm_src_files := \
   crypto/bn/asm/armv4-gf2m.S \
   crypto/bn/asm/armv4-mont.S \
   crypto/modes/asm/ghash-armv4.S \
+  crypto/modes/asm/ghashv8-armx.S \
   crypto/sha/asm/sha1-armv4-large.S \
   crypto/sha/asm/sha256-armv4.S \
   crypto/sha/asm/sha512-armv4.S \

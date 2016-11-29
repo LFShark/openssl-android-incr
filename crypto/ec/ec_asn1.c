@@ -970,9 +970,8 @@ EC_GROUP *d2i_ECPKParameters(EC_GROUP **a, const unsigned char **in, long len)
 {
     EC_GROUP *group = NULL;
     ECPKPARAMETERS *params = NULL;
-    const unsigned char *p = *in;
 
-    if ((params = d2i_ECPKPARAMETERS(NULL, &p, len)) == NULL) {
+    if ((params = d2i_ECPKPARAMETERS(NULL, in, len)) == NULL) {
         ECerr(EC_F_D2I_ECPKPARAMETERS, EC_R_D2I_ECPKPARAMETERS_FAILURE);
         ECPKPARAMETERS_free(params);
         return NULL;
@@ -990,7 +989,6 @@ EC_GROUP *d2i_ECPKParameters(EC_GROUP **a, const unsigned char **in, long len)
         *a = group;
 
     ECPKPARAMETERS_free(params);
-    *in = p;
     return (group);
 }
 
@@ -1018,10 +1016,15 @@ EC_KEY *d2i_ECPrivateKey(EC_KEY **a, const unsigned char **in, long len)
     int ok = 0;
     EC_KEY *ret = NULL;
     EC_PRIVATEKEY *priv_key = NULL;
-    const unsigned char *p = *in;
 
-    if ((priv_key = d2i_EC_PRIVATEKEY(NULL, &p, len)) == NULL) {
+    if ((priv_key = EC_PRIVATEKEY_new()) == NULL) {
+        ECerr(EC_F_D2I_ECPRIVATEKEY, ERR_R_MALLOC_FAILURE);
+        return NULL;
+    }
+
+    if ((priv_key = d2i_EC_PRIVATEKEY(&priv_key, in, len)) == NULL) {
         ECerr(EC_F_D2I_ECPRIVATEKEY, ERR_R_EC_LIB);
+        EC_PRIVATEKEY_free(priv_key);
         return NULL;
     }
 
@@ -1030,6 +1033,8 @@ EC_KEY *d2i_ECPrivateKey(EC_KEY **a, const unsigned char **in, long len)
             ECerr(EC_F_D2I_ECPRIVATEKEY, ERR_R_MALLOC_FAILURE);
             goto err;
         }
+        if (a)
+            *a = ret;
     } else
         ret = *a;
 
@@ -1097,13 +1102,10 @@ EC_KEY *d2i_ECPrivateKey(EC_KEY **a, const unsigned char **in, long len)
         ret->enc_flag |= EC_PKEY_NO_PUBKEY;
     }
 
-    if (a)
-        *a = ret;
-    *in = p;
     ok = 1;
  err:
     if (!ok) {
-        if (ret && (a == NULL || *a != ret))
+        if (ret)
             EC_KEY_free(ret);
         ret = NULL;
     }
@@ -1118,7 +1120,7 @@ int i2d_ECPrivateKey(EC_KEY *a, unsigned char **out)
 {
     int ret = 0, ok = 0;
     unsigned char *buffer = NULL;
-    size_t buf_len = 0, tmp_len, bn_len;
+    size_t buf_len = 0, tmp_len;
     EC_PRIVATEKEY *priv_key = NULL;
 
     if (a == NULL || a->group == NULL || a->priv_key == NULL ||
@@ -1134,30 +1136,16 @@ int i2d_ECPrivateKey(EC_KEY *a, unsigned char **out)
 
     priv_key->version = a->version;
 
-    bn_len = (size_t)BN_num_bytes(a->priv_key);
-
-    /* Octetstring may need leading zeros if BN is to short */
-
-    buf_len = (EC_GROUP_get_degree(a->group) + 7) / 8;
-
-    if (bn_len > buf_len) {
-        ECerr(EC_F_I2D_ECPRIVATEKEY, EC_R_BUFFER_TOO_SMALL);
-        goto err;
-    }
-
+    buf_len = (size_t)BN_num_bytes(a->priv_key);
     buffer = OPENSSL_malloc(buf_len);
     if (buffer == NULL) {
         ECerr(EC_F_I2D_ECPRIVATEKEY, ERR_R_MALLOC_FAILURE);
         goto err;
     }
 
-    if (!BN_bn2bin(a->priv_key, buffer + buf_len - bn_len)) {
+    if (!BN_bn2bin(a->priv_key, buffer)) {
         ECerr(EC_F_I2D_ECPRIVATEKEY, ERR_R_BN_LIB);
         goto err;
-    }
-
-    if (buf_len - bn_len > 0) {
-        memset(buffer, 0, buf_len - bn_len);
     }
 
     if (!M_ASN1_OCTET_STRING_set(priv_key->privateKey, buffer, buf_len)) {
@@ -1244,18 +1232,15 @@ EC_KEY *d2i_ECParameters(EC_KEY **a, const unsigned char **in, long len)
             ECerr(EC_F_D2I_ECPARAMETERS, ERR_R_MALLOC_FAILURE);
             return NULL;
         }
+        if (a)
+            *a = ret;
     } else
         ret = *a;
 
     if (!d2i_ECPKParameters(&ret->group, in, len)) {
         ECerr(EC_F_D2I_ECPARAMETERS, ERR_R_EC_LIB);
-        if (a == NULL || *a != ret)
-             EC_KEY_free(ret);
         return NULL;
     }
-
-    if (a)
-        *a = ret;
 
     return ret;
 }

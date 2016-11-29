@@ -194,7 +194,7 @@ static int dtls1_record_needs_buffering(SSL *s, SSL3_RECORD *rr,
 #endif
 static int dtls1_buffer_record(SSL *s, record_pqueue *q,
                                unsigned char *priority);
-static int dtls1_process_record(SSL *s, DTLS1_BITMAP *bitmap);
+static int dtls1_process_record(SSL *s);
 
 /* copy buffered record into SSL structure */
 static int dtls1_copy_record(SSL *s, pitem *item)
@@ -236,7 +236,7 @@ dtls1_buffer_record(SSL *s, record_pqueue *queue, unsigned char *priority)
             pitem_free(item);
 
         SSLerr(SSL_F_DTLS1_BUFFER_RECORD, ERR_R_INTERNAL_ERROR);
-        return -1;
+        return (0);
     }
 
     rdata->packet = s->packet;
@@ -319,70 +319,21 @@ static int dtls1_retrieve_buffered_record(SSL *s, record_pqueue *queue)
 static int dtls1_process_buffered_records(SSL *s)
 {
     pitem *item;
-    SSL3_BUFFER *rb;
-    SSL3_RECORD *rr;
-    DTLS1_BITMAP *bitmap;
-    unsigned int is_next_epoch;
-    int replayok = 1;
 
     item = pqueue_peek(s->d1->unprocessed_rcds.q);
     if (item) {
         /* Check if epoch is current. */
         if (s->d1->unprocessed_rcds.epoch != s->d1->r_epoch)
-            return 1;         /* Nothing to do. */
-
-        rr = &s->s3->rrec;
-        rb = &s->s3->rbuf;
-
-        if (rb->left > 0) {
-            /*
-             * We've still got data from the current packet to read. There could
-             * be a record from the new epoch in it - so don't overwrite it
-             * with the unprocessed records yet (we'll do it when we've
-             * finished reading the current packet).
-             */
-            return 1;
-        }
-
+            return (1);         /* Nothing to do. */
 
         /* Process all the records. */
         while (pqueue_peek(s->d1->unprocessed_rcds.q)) {
             dtls1_get_unprocessed_record(s);
-            bitmap = dtls1_get_bitmap(s, rr, &is_next_epoch);
-            if (bitmap == NULL) {
-                /*
-                 * Should not happen. This will only ever be NULL when the
-                 * current record is from a different epoch. But that cannot
-                 * be the case because we already checked the epoch above
-                 */
-                 SSLerr(SSL_F_DTLS1_PROCESS_BUFFERED_RECORDS,
-                        ERR_R_INTERNAL_ERROR);
-                 return 0;
-            }
-#ifndef OPENSSL_NO_SCTP
-            /* Only do replay check if no SCTP bio */
-            if (!BIO_dgram_is_sctp(SSL_get_rbio(s)))
-#endif
-            {
-                /*
-                 * Check whether this is a repeat, or aged record. We did this
-                 * check once already when we first received the record - but
-                 * we might have updated the window since then due to
-                 * records we subsequently processed.
-                 */
-                replayok = dtls1_record_replay_check(s, bitmap);
-            }
-
-            if (!replayok || !dtls1_process_record(s, bitmap)) {
-                /* dump this record */
-                rr->length = 0;
-                s->packet_length = 0;
-                continue;
-            }
-
+            if (!dtls1_process_record(s))
+                return (0);
             if (dtls1_buffer_record(s, &(s->d1->processed_rcds),
                                     s->s3->rrec.seq_num) < 0)
-                return 0;
+                return -1;
         }
     }
 
@@ -393,7 +344,7 @@ static int dtls1_process_buffered_records(SSL *s)
     s->d1->processed_rcds.epoch = s->d1->r_epoch;
     s->d1->unprocessed_rcds.epoch = s->d1->r_epoch + 1;
 
-    return 1;
+    return (1);
 }
 
 #if 0
@@ -440,7 +391,7 @@ static int dtls1_get_buffered_record(SSL *s)
 
 #endif
 
-static int dtls1_process_record(SSL *s, DTLS1_BITMAP *bitmap)
+static int dtls1_process_record(SSL *s)
 {
     int i, al;
     int enc_err;
@@ -600,10 +551,6 @@ static int dtls1_process_record(SSL *s, DTLS1_BITMAP *bitmap)
 
     /* we have pulled in a full packet so zero things */
     s->packet_length = 0;
-
-    /* Mark receipt of record. */
-    dtls1_record_bitmap_update(s, bitmap);
-
     return (1);
 
  f_err:
@@ -634,12 +581,11 @@ int dtls1_get_record(SSL *s)
 
     rr = &(s->s3->rrec);
 
- again:
     /*
      * The epoch may have changed.  If so, process all the pending records.
      * This is a non-blocking operation.
      */
-    if (!dtls1_process_buffered_records(s))
+    if (dtls1_process_buffered_records(s) < 0)
         return -1;
 
     /* if we're renegotiating, then there may be buffered records */
@@ -647,6 +593,7 @@ int dtls1_get_record(SSL *s)
         return 1;
 
     /* get something from the wire */
+ again:
     /* check if we have the header */
     if ((s->rstate != SSL_ST_READ_BODY) ||
         (s->packet_length < DTLS1_RT_HEADER_LENGTH)) {
@@ -664,6 +611,10 @@ int dtls1_get_record(SSL *s)
         s->rstate = SSL_ST_READ_BODY;
 
         p = s->packet;
+
+        if (s->msg_callback)
+            s->msg_callback(0, 0, SSL3_RT_HEADER, p, DTLS1_RT_HEADER_LENGTH,
+                            s, s->msg_callback_arg);
 
         /* Pull apart the header into the DTLS1_RECORD */
         rr->type = *(p++);
@@ -770,17 +721,20 @@ int dtls1_get_record(SSL *s)
             if (dtls1_buffer_record
                 (s, &(s->d1->unprocessed_rcds), rr->seq_num) < 0)
                 return -1;
+            /* Mark receipt of record. */
+            dtls1_record_bitmap_update(s, bitmap);
         }
         rr->length = 0;
         s->packet_length = 0;
         goto again;
     }
 
-    if (!dtls1_process_record(s, bitmap)) {
+    if (!dtls1_process_record(s)) {
         rr->length = 0;
         s->packet_length = 0;   /* dump this record */
         goto again;             /* get another record */
     }
+    dtls1_record_bitmap_update(s, bitmap); /* Mark receipt of record. */
 
     return (1);
 
@@ -1115,7 +1069,7 @@ int dtls1_read_bytes(SSL *s, int type, unsigned char *buf, int len, int peek)
             (s->d1->handshake_fragment[3] != 0)) {
             al = SSL_AD_DECODE_ERROR;
             SSLerr(SSL_F_DTLS1_READ_BYTES, SSL_R_BAD_HELLO_REQUEST);
-            goto f_err;
+            goto err;
         }
 
         /*
@@ -1188,7 +1142,7 @@ int dtls1_read_bytes(SSL *s, int type, unsigned char *buf, int len, int peek)
             cb(s, SSL_CB_READ_ALERT, j);
         }
 
-        if (alert_level == SSL3_AL_WARNING) {
+        if (alert_level == 1) { /* warning */
             s->s3->warn_alert = alert_descr;
             if (alert_descr == SSL_AD_CLOSE_NOTIFY) {
 #ifndef OPENSSL_NO_SCTP
@@ -1237,7 +1191,7 @@ int dtls1_read_bytes(SSL *s, int type, unsigned char *buf, int len, int peek)
                 }
             }
 #endif
-        } else if (alert_level == SSL3_AL_FATAL) {
+        } else if (alert_level == 2) { /* fatal */
             char tmp[16];
 
             s->rwstate = SSL_NOTHING;
@@ -1538,10 +1492,10 @@ int do_dtls1_write(SSL *s, int type, const unsigned char *buf,
     unsigned char *p, *pseq;
     int i, mac_size, clear = 0;
     int prefix_len = 0;
+    int eivlen;
     SSL3_RECORD *wr;
     SSL3_BUFFER *wb;
     SSL_SESSION *sess;
-    int bs;
 
     /*
      * first check if there is a SSL3_BUFFER still being written out.  This
@@ -1620,27 +1574,41 @@ int do_dtls1_write(SSL *s, int type, const unsigned char *buf,
 
     *(p++) = type & 0xff;
     wr->type = type;
-
-    *(p++) = (s->version >> 8);
-    *(p++) = s->version & 0xff;
+    /*
+     * Special case: for hello verify request, client version 1.0 and we
+     * haven't decided which version to use yet send back using version 1.0
+     * header: otherwise some clients will ignore it.
+     */
+    if (s->method->version == DTLS_ANY_VERSION) {
+        *(p++) = DTLS1_VERSION >> 8;
+        *(p++) = DTLS1_VERSION & 0xff;
+    } else {
+        *(p++) = s->version >> 8;
+        *(p++) = s->version & 0xff;
+    }
 
     /* field where we are to write out packet epoch, seq num and len */
     pseq = p;
     p += 10;
 
+    /* Explicit IV length, block ciphers appropriate version flag */
+    if (s->enc_write_ctx) {
+        int mode = EVP_CIPHER_CTX_mode(s->enc_write_ctx);
+        if (mode == EVP_CIPH_CBC_MODE) {
+            eivlen = EVP_CIPHER_CTX_iv_length(s->enc_write_ctx);
+            if (eivlen <= 1)
+                eivlen = 0;
+        }
+        /* Need explicit part of IV for GCM mode */
+        else if (mode == EVP_CIPH_GCM_MODE)
+            eivlen = EVP_GCM_TLS_EXPLICIT_IV_LEN;
+        else
+            eivlen = 0;
+    } else
+        eivlen = 0;
+
     /* lets setup the record stuff. */
-
-    /*
-     * Make space for the explicit IV in case of CBC. (this is a bit of a
-     * boundary violation, but what the heck).
-     */
-    if (s->enc_write_ctx &&
-        (EVP_CIPHER_mode(s->enc_write_ctx->cipher) & EVP_CIPH_CBC_MODE))
-        bs = EVP_CIPHER_block_size(s->enc_write_ctx->cipher);
-    else
-        bs = 0;
-
-    wr->data = p + bs;          /* make room for IV in case of CBC */
+    wr->data = p + eivlen;      /* make room for IV in case of CBC */
     wr->length = (int)len;
     wr->input = (unsigned char *)buf;
 
@@ -1666,7 +1634,7 @@ int do_dtls1_write(SSL *s, int type, const unsigned char *buf,
      */
 
     if (mac_size != 0) {
-        if (s->method->ssl3_enc->mac(s, &(p[wr->length + bs]), 1) < 0)
+        if (s->method->ssl3_enc->mac(s, &(p[wr->length + eivlen]), 1) < 0)
             goto err;
         wr->length += mac_size;
     }
@@ -1675,15 +1643,8 @@ int do_dtls1_write(SSL *s, int type, const unsigned char *buf,
     wr->input = p;
     wr->data = p;
 
-    /* ssl3_enc can only have an error on read */
-    if (bs) {                   /* bs != 0 in case of CBC */
-        if (RAND_bytes(p, bs) <= 0)
-            goto err;
-        /*
-         * master IV and last CBC residue stand for the rest of randomness
-         */
-        wr->length += bs;
-    }
+    if (eivlen)
+        wr->length += eivlen;
 
     if (s->method->ssl3_enc->enc(s, 1) < 1)
         goto err;
@@ -1706,6 +1667,10 @@ int do_dtls1_write(SSL *s, int type, const unsigned char *buf,
     memcpy(pseq, &(s->s3->write_sequence[2]), 6);
     pseq += 6;
     s2n(wr->length, pseq);
+
+    if (s->msg_callback)
+        s->msg_callback(1, 0, SSL3_RT_HEADER, pseq - DTLS1_RT_HEADER_LENGTH,
+                        DTLS1_RT_HEADER_LENGTH, s, s->msg_callback_arg);
 
     /*
      * we should now have wr->data pointing to the encrypted data, which is
@@ -1865,13 +1830,8 @@ static DTLS1_BITMAP *dtls1_get_bitmap(SSL *s, SSL3_RECORD *rr,
     if (rr->epoch == s->d1->r_epoch)
         return &s->d1->bitmap;
 
-    /*
-     * Only HM and ALERT messages can be from the next epoch and only if we
-     * have already processed all of the unprocessed records from the last
-     * epoch
-     */
+    /* Only HM and ALERT messages can be from the next epoch */
     else if (rr->epoch == (unsigned long)(s->d1->r_epoch + 1) &&
-             s->d1->unprocessed_rcds.epoch != s->d1->r_epoch &&
              (rr->type == SSL3_RT_HANDSHAKE || rr->type == SSL3_RT_ALERT)) {
         *is_next_epoch = 1;
         return &s->d1->next_bitmap;
@@ -1950,12 +1910,6 @@ void dtls1_reset_seq_numbers(SSL *s, int rw)
         s->d1->r_epoch++;
         memcpy(&(s->d1->bitmap), &(s->d1->next_bitmap), sizeof(DTLS1_BITMAP));
         memset(&(s->d1->next_bitmap), 0x00, sizeof(DTLS1_BITMAP));
-
-        /*
-         * We must not use any buffered messages received from the previous
-         * epoch
-         */
-        dtls1_clear_received_buffer(s);
     } else {
         seq = s->s3->write_sequence;
         memcpy(s->d1->last_write_sequence, seq,
