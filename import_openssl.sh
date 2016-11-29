@@ -438,7 +438,7 @@ function import() {
   generate_config_mk Apps-config.mk APPS
 
   # Prune unnecessary sources
-  prune
+#  prune
 
   NEEDED_SOURCES="$NEEDED_SOURCES android.testssl"
   for i in $NEEDED_SOURCES; do
