@@ -1,6 +1,6 @@
 # Auto-generated - DO NOT EDIT!
 # To regenerate, edit openssl.config, then run:
-#     ./import_openssl.sh import /path/to/openssl-1.0.2a.tar.gz
+#     ./import_openssl.sh import /path/to/openssl-1.0.2b.tar.gz
 #
 # Before including this file, the local Android.mk must define the following
 # variables:
@@ -231,11 +231,11 @@ common_src_files := \
   crypto/dh/dh_depr.c \
   crypto/dh/dh_err.c \
   crypto/dh/dh_gen.c \
-  crypto/dh/dh_key.c \
   crypto/dh/dh_kdf.c \
-  crypto/dh/dh_rfc5114.c \
+  crypto/dh/dh_key.c \
   crypto/dh/dh_lib.c \
   crypto/dh/dh_pmeth.c \
+  crypto/dh/dh_rfc5114.c \
   crypto/dsa/dsa_ameth.c \
   crypto/dsa/dsa_asn1.c \
   crypto/dsa/dsa_depr.c \
@@ -385,8 +385,8 @@ common_src_files := \
   crypto/modes/ctr128.c \
   crypto/modes/gcm128.c \
   crypto/modes/ofb128.c \
-  crypto/modes/xts128.c \
   crypto/modes/wrap128.c \
+  crypto/modes/xts128.c \
   crypto/o_dir.c \
   crypto/o_init.c \
   crypto/o_str.c \
@@ -546,10 +546,10 @@ common_src_files := \
   crypto/x509v3/v3_pmaps.c \
   crypto/x509v3/v3_prn.c \
   crypto/x509v3/v3_purp.c \
+  crypto/x509v3/v3_scts.c \
   crypto/x509v3/v3_skey.c \
   crypto/x509v3/v3_sxnet.c \
   crypto/x509v3/v3_utl.c \
-  crypto/x509v3/v3_scts.c \
   crypto/x509v3/v3err.c \
 
 common_c_includes := \

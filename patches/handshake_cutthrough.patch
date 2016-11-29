@@ -1,6 +1,6 @@
---- openssl-1.0.2.orig/apps/s_client.c	2016-11-29 11:51:12.555990062 +0000
-+++ openssl-1.0.2/apps/s_client.c	2016-11-29 11:51:12.643989819 +0000
-@@ -362,6 +362,13 @@ static void sc_usage(void)
+--- openssl-1.0.2b.orig/apps/s_client.c	2016-11-29 15:07:11.943133309 +0000
++++ openssl-1.0.2b/apps/s_client.c	2016-11-29 15:07:12.007132924 +0000
+@@ -364,6 +364,13 @@ static void sc_usage(void)
      BIO_printf(bio_err, " -jpake arg    - JPAKE secret to use\n");
  # endif
  #endif
@@ -14,7 +14,7 @@
  #ifndef OPENSSL_NO_SRP
      BIO_printf(bio_err,
                 " -srpuser user     - SRP authentification for 'user'\n");
-@@ -587,6 +594,16 @@ typedef struct tlsextnextprotoctx_st {
+@@ -594,6 +601,16 @@ typedef struct tlsextnextprotoctx_st {
  
  static tlsextnextprotoctx next_proto;
  
@@ -79,9 +79,9 @@
  #endif
  
      SSL_set_bio(con, sbio, sbio);
---- openssl-1.0.2.orig/ssl/s3_clnt.c	2016-11-29 11:51:12.607989919 +0000
-+++ openssl-1.0.2/ssl/s3_clnt.c	2016-11-29 11:51:12.647989808 +0000
-@@ -215,6 +215,30 @@ int ssl3_connect(SSL *s)
+--- openssl-1.0.2b.orig/ssl/s3_clnt.c	2016-11-29 15:07:11.983133068 +0000
++++ openssl-1.0.2b/ssl/s3_clnt.c	2016-11-29 15:07:12.007132924 +0000
+@@ -218,6 +218,30 @@ int ssl3_connect(SSL *s)
      }
  #endif
  
@@ -112,7 +112,7 @@
      for (;;) {
          state = s->state;
  
-@@ -304,13 +328,53 @@ int ssl3_connect(SSL *s)
+@@ -311,13 +335,53 @@ int ssl3_connect(SSL *s)
  
              if (s->hit) {
                  s->state = SSL3_ST_CR_FINISHED_A;
@@ -166,7 +166,7 @@
                  s->state = SSL3_ST_CR_CERT_A;
              }
              s->init_num = 0;
-@@ -566,6 +630,30 @@ int ssl3_connect(SSL *s)
+@@ -590,6 +654,30 @@ int ssl3_connect(SSL *s)
              s->init_num = 0;
              break;
  
@@ -197,8 +197,8 @@
          case SSL3_ST_CW_FLUSH:
              s->rwstate = SSL_WRITING;
              if (BIO_flush(s->wbio) <= 0) {
---- openssl-1.0.2.orig/ssl/s3_lib.c	2016-11-29 11:51:12.607989919 +0000
-+++ openssl-1.0.2/ssl/s3_lib.c	2016-11-29 11:51:12.647989808 +0000
+--- openssl-1.0.2b.orig/ssl/s3_lib.c	2016-11-29 15:07:11.983133068 +0000
++++ openssl-1.0.2b/ssl/s3_lib.c	2016-11-29 15:07:12.007132924 +0000
 @@ -4406,6 +4406,29 @@ int ssl3_write(SSL *s, const void *buf,
  }
  
@@ -229,8 +229,8 @@
  {
      int ret;
  
---- openssl-1.0.2.orig/ssl/ssl.h	2016-11-29 11:51:12.607989919 +0000
-+++ openssl-1.0.2/ssl/ssl.h	2016-11-29 11:51:12.647989808 +0000
+--- openssl-1.0.2b.orig/ssl/ssl.h	2016-11-29 15:07:11.983133068 +0000
++++ openssl-1.0.2b/ssl/ssl.h	2016-11-29 15:07:12.007132924 +0000
 @@ -697,8 +697,25 @@ struct ssl_session_st {
   * just freed (depending on the context's setting for freelist_max_len).
   */
@@ -277,8 +277,8 @@
  
  # endif
  
---- openssl-1.0.2.orig/ssl/ssl3.h	2016-11-29 11:51:12.607989919 +0000
-+++ openssl-1.0.2/ssl/ssl3.h	2016-11-29 11:51:12.651989797 +0000
+--- openssl-1.0.2b.orig/ssl/ssl3.h	2016-11-29 15:07:11.983133068 +0000
++++ openssl-1.0.2b/ssl/ssl3.h	2016-11-29 15:07:12.011132900 +0000
 @@ -637,6 +637,14 @@ typedef struct ssl3_state_st {
   * client
   */
@@ -294,9 +294,9 @@
  # define SSL3_ST_CW_FLUSH                (0x100|SSL_ST_CONNECT)
  # ifndef OPENSSL_NO_SCTP
  #  define DTLS1_SCTP_ST_CW_WRITE_SOCK                     (0x310|SSL_ST_CONNECT)
---- openssl-1.0.2.orig/ssl/ssl_lib.c	2016-11-29 11:51:12.607989919 +0000
-+++ openssl-1.0.2/ssl/ssl_lib.c	2016-11-29 11:51:12.651989797 +0000
-@@ -3502,6 +3502,25 @@ EVP_MD_CTX *ssl_replace_hash(EVP_MD_CTX
+--- openssl-1.0.2b.orig/ssl/ssl_lib.c	2016-11-29 15:07:11.983133068 +0000
++++ openssl-1.0.2b/ssl/ssl_lib.c	2016-11-29 15:07:12.011132900 +0000
+@@ -3512,6 +3512,25 @@ EVP_MD_CTX *ssl_replace_hash(EVP_MD_CTX
      return *hash;
  }
  
@@ -322,9 +322,9 @@
  void ssl_clear_hash_ctx(EVP_MD_CTX **hash)
  {
  
---- openssl-1.0.2.orig/ssl/ssltest.c	2016-11-29 11:51:12.607989919 +0000
-+++ openssl-1.0.2/ssl/ssltest.c	2016-11-29 11:51:12.679989720 +0000
-@@ -752,6 +752,21 @@ static void sv_usage(void)
+--- openssl-1.0.2b.orig/ssl/ssltest.c	2016-11-29 15:07:11.987133044 +0000
++++ openssl-1.0.2b/ssl/ssltest.c	2016-11-29 15:07:12.011132900 +0000
+@@ -758,6 +758,21 @@ static void sv_usage(void)
      fprintf(stderr,
              " -alpn_expected <string> - the ALPN protocol that should be negotiated\n");
  }
@@ -346,7 +346,7 @@
  
  static void print_details(SSL *c_ssl, const char *prefix)
  {
-@@ -922,7 +937,15 @@ int main(int argc, char *argv[])
+@@ -928,7 +943,15 @@ int main(int argc, char *argv[])
  #ifdef OPENSSL_FIPS
      int fips_mode = 0;
  #endif
@@ -362,10 +362,12 @@
  
      verbose = 0;
      debug = 0;
-@@ -1172,6 +1195,19 @@ int main(int argc, char *argv[])
+@@ -1172,6 +1195,25 @@ int main(int argc, char *argv[])
          goto end;
      }
  
++<<<<<<<
++=======
 +<<<<<<<
 +=======
 +			{
@@ -379,10 +381,14 @@
 +			{
 +			fprintf(stderr,"unknown option %s\n",*argv);
 +>>>>>>>
-     if (ssl2 + ssl3 + tls1 > 1) {
-         fprintf(stderr, "At most one of -ssl2, -ssl3, or -tls1 should "
-                 "be requested.\n");
-@@ -2754,7 +2790,19 @@ static void free_tmp_rsa(void)
++    if (ssl2 + ssl3 + tls1 > 1) {
++        fprintf(stderr, "At most one of -ssl2, -ssl3, or -tls1 should "
++                "be requested.\n");
++>>>>>>>
+     /*
+      * test_cipherlist prevails over protocol switch: we test the cipherlist
+      * for all enabled protocols.
+@@ -2774,7 +2816,19 @@ static void free_tmp_rsa(void)
          rsa_tmp = NULL;
      }
  }
@@ -402,8 +408,8 @@
  
  #ifndef OPENSSL_NO_DH
  /*-
---- openssl-1.0.2.orig/test/testssl	2016-11-29 11:51:12.611989908 +0000
-+++ openssl-1.0.2/test/testssl	2016-11-29 11:51:12.683989709 +0000
+--- openssl-1.0.2b.orig/test/testssl	2016-11-29 15:07:11.987133044 +0000
++++ openssl-1.0.2b/test/testssl	2016-11-29 15:07:12.011132900 +0000
 @@ -72,6 +72,9 @@ $ssltest -client_auth $CA $extra || exit
  echo test sslv2/sslv3 with both client and server authentication
  $ssltest -server_auth -client_auth $CA $extra || exit 1
