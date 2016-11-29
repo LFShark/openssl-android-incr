@@ -367,6 +367,7 @@ function import() {
   gen_asm_arm crypto/bn/asm/armv4-gf2m.pl
   gen_asm_arm crypto/bn/asm/armv4-mont.pl
   gen_asm_arm crypto/modes/asm/ghash-armv4.pl
+  gen_asm_arm crypto/modes/asm/ghashv8-armx.pl
   gen_asm_arm crypto/sha/asm/sha1-armv4-large.pl
   gen_asm_arm crypto/sha/asm/sha256-armv4.pl
   gen_asm_arm crypto/sha/asm/sha512-armv4.pl
